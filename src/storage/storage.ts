@@ -1,10 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { recipes as localRecipes, categories as localCategories } from '../data/recipes';
+import { fetchAllRecipes, fetchCategories as fetchRemoteCategories, fetchFeaturedRecipes, fetchPopularRecipes, fetchRecipesByCategory, searchRecipes as searchRemoteRecipes, fetchRecipeById } from '../services/recipeService';
 import type { Recipe } from '../types';
 
 const FAVORITES_KEY = 'arike-favorites';
 const SHOPPING_KEY = 'arike-shopping-list';
 const RECENT_KEY = 'arike-recently-viewed';
+const RECIPE_CACHE_KEY = 'olatiwa-recipe-cache';
+const RECIPE_CACHE_TS_KEY = 'olatiwa-recipe-cache-ts';
 
 // ============================================================================
 // Local Storage Functions (AsyncStorage)
@@ -65,62 +68,73 @@ export const saveRecentlyViewed = async (recentlyViewed: string[]) => {
 };
 
 // ============================================================================
-// Recipe Functions (Using Local Data - No Supabase Required)
+// Recipe Cache Helpers
 // ============================================================================
 
-/**
- * Load all recipes from local data (Supabase-ready for future upgrades)
- */
-export const loadRecipes = async (): Promise<Recipe[]> => {
+async function getCachedRecipes(): Promise<Recipe[] | null> {
   try {
-    return localRecipes;
-  } catch (error) {
-    console.error('Failed to load recipes:', error);
+    const cached = await AsyncStorage.getItem(RECIPE_CACHE_KEY);
+    if (!cached) return null;
+    return JSON.parse(cached) as Recipe[];
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedRecipes(recipes: Recipe[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(RECIPE_CACHE_KEY, JSON.stringify(recipes));
+    await AsyncStorage.setItem(RECIPE_CACHE_TS_KEY, String(Date.now()));
+  } catch {
+    // ignore cache write failures
+  }
+}
+
+// ============================================================================
+// Remote-first recipe functions with local fallback
+// ============================================================================
+
+export async function loadRecipes(): Promise<Recipe[]> {
+  try {
+    const remote = await fetchAllRecipes();
+    await setCachedRecipes(remote);
+    return remote;
+  } catch (remoteError) {
+    console.warn('Remote recipe load failed, falling back to cache then local data:', remoteError);
+    const cached = await getCachedRecipes();
+    if (cached && cached.length > 0) return cached;
     return localRecipes;
   }
-};
+}
 
-/**
- * Load featured recipes from local data
- */
-export const loadFeaturedRecipes = async (): Promise<Recipe[]> => {
+export async function loadFeaturedRecipes(): Promise<Recipe[]> {
   try {
+    return await fetchFeaturedRecipes();
+  } catch {
     return localRecipes.filter((r) => r.featured);
-  } catch (error) {
-    console.error('Failed to load featured recipes:', error);
-    return [];
   }
-};
+}
 
-/**
- * Load popular recipes from local data
- */
-export const loadPopularRecipes = async (): Promise<Recipe[]> => {
+export async function loadPopularRecipes(): Promise<Recipe[]> {
   try {
+    return await fetchPopularRecipes();
+  } catch {
     return localRecipes.filter((r) => r.popular);
-  } catch (error) {
-    console.error('Failed to load popular recipes:', error);
-    return [];
   }
-};
+}
 
-/**
- * Load recipes by category from local data
- */
-export const loadRecipesByCategory = async (category: string): Promise<Recipe[]> => {
+export async function loadRecipesByCategory(category: string): Promise<Recipe[]> {
   try {
+    return await fetchRecipesByCategory(category);
+  } catch {
     return localRecipes.filter((r) => r.category.toLowerCase() === category.toLowerCase());
-  } catch (error) {
-    console.error(`Failed to load recipes for category ${category}:`, error);
-    return [];
   }
-};
+}
 
-/**
- * Search recipes from local data
- */
-export const searchRecipesFromStorage = async (query: string): Promise<Recipe[]> => {
+export async function searchRecipesFromStorage(query: string): Promise<Recipe[]> {
   try {
+    return await searchRemoteRecipes(query);
+  } catch {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return localRecipes;
 
@@ -138,55 +152,40 @@ export const searchRecipesFromStorage = async (query: string): Promise<Recipe[]>
 
       return searchable.includes(normalized);
     });
-  } catch (error) {
-    console.error('Failed to search recipes:', error);
-    return [];
   }
-};
+}
 
-/**
- * Load a single recipe by ID from local data
- */
-export const loadRecipeById = async (recipeId: string): Promise<Recipe | null> => {
+export async function loadRecipeById(recipeId: string): Promise<Recipe | null> {
   try {
-    return localRecipes.find((r) => r.id === recipeId) || null;
-  } catch (error) {
-    console.error(`Failed to load recipe ${recipeId}:`, error);
-    return null;
+    const remote = await fetchRecipeById(recipeId);
+    if (remote) return remote;
+  } catch {
+    // fall through to local lookup
   }
-};
 
-/**
- * Load all available categories from local data
- */
-export const loadCategories = async (): Promise<string[]> => {
+  return localRecipes.find((r) => r.id === recipeId) || null;
+}
+
+export async function loadCategories(): Promise<string[]> {
   try {
+    const remote = await fetchRemoteCategories();
+    return remote.map((c) => c.name);
+  } catch {
     return localCategories;
-  } catch (error) {
-    console.error('Failed to load categories:', error);
-    return [];
   }
-};
+}
 
-/**
- * Legacy helper function for compatibility
- */
+// ============================================================================
+// Legacy helper functions for compatibility
+// ============================================================================
+
 export const getFeaturedRecipes = () => localRecipes.filter((recipe) => recipe.featured);
 
-/**
- * Legacy helper function for compatibility
- */
 export const getPopularRecipes = () => localRecipes.filter((recipe) => recipe.popular);
 
-/**
- * Legacy helper function for compatibility
- */
 export const getRecipesByCategory = (category: string) =>
   localRecipes.filter((recipe) => recipe.category.toLowerCase() === category.toLowerCase());
 
-/**
- * Legacy helper function for compatibility
- */
 export const searchRecipes = (query: string) => {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return localRecipes;
@@ -198,7 +197,7 @@ export const searchRecipes = (query: string) => {
       recipe.cuisine,
       recipe.description,
       ...recipe.tags,
-      ...recipe.ingredients.map((ingredient) => ingredient.name),
+      ...recipe.ingredients.map((ingredient: any) => ingredient.name),
     ]
       .join(' ')
       .toLowerCase();

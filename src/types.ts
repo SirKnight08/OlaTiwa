@@ -21,6 +21,7 @@ export type Recipe = {
   category: string;
   cuisine: string;
   image: string;
+  images?: string[];
   preparationTime: number;
   cookingTime: number;
   totalTime: number;
