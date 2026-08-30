@@ -1,19 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-function getSupabaseUrl(): string {
-  const fromEnv = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  if (fromEnv && fromEnv.trim().length > 0) {
-    return fromEnv.trim();
-  }
-  throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL');
+function getSupabaseUrl(): string | undefined {
+  return process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
 }
 
-function getSupabaseAnonKey(): string {
-  const fromEnv = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-  if (fromEnv && fromEnv.trim().length > 0) {
-    return fromEnv.trim();
-  }
-  throw new Error('Missing EXPO_PUBLIC_SUPABASE_ANON_KEY');
+function getSupabaseAnonKey(): string | undefined {
+  return process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim();
 }
 
-export const supabase = createClient(getSupabaseUrl(), getSupabaseAnonKey());
+const url = getSupabaseUrl();
+const anonKey = getSupabaseAnonKey();
+
+if (!url || !anonKey) {
+  console.warn('Supabase credentials are not configured. The app will run in offline mode with local recipe data.');
+}
+
+export const supabase = createClient(url || 'https://placeholder.supabase.co', anonKey || 'placeholder-key');

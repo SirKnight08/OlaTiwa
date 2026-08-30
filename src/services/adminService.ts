@@ -30,14 +30,22 @@ export async function adminSignIn(email: string, password: string): Promise<Admi
 }
 
 export async function adminSignOut(): Promise<void> {
-  await supabase.auth.signOut();
+  try {
+    await supabase.auth.signOut();
+  } catch (error) {
+    console.warn('Admin sign out failed:', error);
+  }
 }
 
 export async function getCurrentAdmin(): Promise<AdminSession | null> {
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
-  const isAdmin = getAdminRole(data.user) === 'admin';
-  return { email: data.user.email ?? '', isAdmin };
+  try {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return null;
+    const isAdmin = getAdminRole(data.user) === 'admin';
+    return { email: data.user.email ?? '', isAdmin };
+  } catch {
+    return null;
+  }
 }
 
 // ============================================================================
