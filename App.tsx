@@ -33,13 +33,13 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <MenuProvider>
-        <AppProvider>
-          <NavigationContainer>
+      <AppProvider>
+        <NavigationContainer>
+          <MenuProvider>
             <AppContent />
-          </NavigationContainer>
-        </AppProvider>
-      </MenuProvider>
+          </MenuProvider>
+        </NavigationContainer>
+      </AppProvider>
     </ThemeProvider>
   );
 }
