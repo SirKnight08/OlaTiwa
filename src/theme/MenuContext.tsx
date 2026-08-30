@@ -24,6 +24,7 @@ const menuItems: MenuItem[] = [
   { label: 'Search', screen: 'Search' },
   { label: 'Favorites', screen: 'Favorites' },
   { label: 'Shopping List', screen: 'Shopping' },
+  { label: 'Admin', screen: 'AdminLogin' },
 ];
 
 export function MenuProvider({ children }: { children: React.ReactNode }) {
