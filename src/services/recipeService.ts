@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import type { DatabaseCategory, DatabaseRecipe, DatabaseRecipeStep, DatabaseIngredient, DatabaseRecipeImage } from '../config/database.types';
+import type { DatabaseCategory, DatabaseRecipe, DatabaseRecipeStep, DatabaseIngredient, DatabaseRecipeImage, DatabaseRecipeTag } from '../config/database.types';
 import type { Recipe, Ingredient, RecipeStep, Difficulty } from '../types';
 
 type RemoteCategory = DatabaseCategory;
@@ -7,6 +7,7 @@ type RemoteRecipe = DatabaseRecipe;
 type RemoteRecipeStep = DatabaseRecipeStep;
 type RemoteIngredient = DatabaseIngredient;
 type RemoteRecipeImage = DatabaseRecipeImage;
+type RemoteRecipeTag = DatabaseRecipeTag;
 
 function toDifficulty(value: string | null): Difficulty | undefined {
   if (value === 'Easy' || value === 'Medium' || value === 'Hard') {
@@ -18,7 +19,7 @@ function toDifficulty(value: string | null): Difficulty | undefined {
 export async function fetchAllRecipes(): Promise<Recipe[]> {
   const { data, error } = await supabase
     .from('recipes')
-    .select('*, ingredients(*), recipe_steps(*), recipe_images(*)')
+    .select('*, ingredients(*), recipe_steps(*), recipe_images(*), recipe_tags(*)')
     .eq('status', 'published')
     .order('created_at', { ascending: false });
 
@@ -32,7 +33,7 @@ export async function fetchAllRecipes(): Promise<Recipe[]> {
 export async function fetchRecipeById(recipeId: string): Promise<Recipe | null> {
   const { data, error } = await supabase
     .from('recipes')
-    .select('*, ingredients(*), recipe_steps(*), recipe_images(*)')
+    .select('*, ingredients(*), recipe_steps(*), recipe_images(*), recipe_tags(*)')
     .eq('id', recipeId)
     .eq('status', 'published')
     .maybeSingle();
@@ -47,7 +48,7 @@ export async function fetchRecipeById(recipeId: string): Promise<Recipe | null> 
 export async function fetchFeaturedRecipes(): Promise<Recipe[]> {
   const { data, error } = await supabase
     .from('recipes')
-    .select('*, ingredients(*), recipe_steps(*), recipe_images(*)')
+    .select('*, ingredients(*), recipe_steps(*), recipe_images(*), recipe_tags(*)')
     .eq('status', 'published')
     .eq('featured', true)
     .order('created_at', { ascending: false });
@@ -62,7 +63,7 @@ export async function fetchFeaturedRecipes(): Promise<Recipe[]> {
 export async function fetchPopularRecipes(): Promise<Recipe[]> {
   const { data, error } = await supabase
     .from('recipes')
-    .select('*, ingredients(*), recipe_steps(*), recipe_images(*)')
+    .select('*, ingredients(*), recipe_steps(*), recipe_images(*), recipe_tags(*)')
     .eq('status', 'published')
     .eq('popular', true)
     .order('created_at', { ascending: false });
@@ -77,7 +78,7 @@ export async function fetchPopularRecipes(): Promise<Recipe[]> {
 export async function fetchRecipesByCategory(category: string): Promise<Recipe[]> {
   const { data, error } = await supabase
     .from('recipes')
-    .select('*, ingredients(*), recipe_steps(*), recipe_images(*)')
+    .select('*, ingredients(*), recipe_steps(*), recipe_images(*), recipe_tags(*)')
     .eq('status', 'published')
     .eq('category_id', category)
     .order('created_at', { ascending: false });
@@ -105,7 +106,7 @@ export async function fetchCategories(): Promise<RemoteCategory[]> {
 export async function searchRecipes(query: string): Promise<Recipe[]> {
   const { data, error } = await supabase
     .from('recipes')
-    .select('*, ingredients(*), recipe_steps(*), recipe_images(*)')
+    .select('*, ingredients(*), recipe_steps(*), recipe_images(*), recipe_tags(*)')
     .eq('status', 'published')
     .or(`title.ilike.%${query}%,description.ilike.%${query}%,cuisine.ilike.%${query}%`)
     .order('created_at', { ascending: false });
@@ -131,28 +132,37 @@ export async function fetchAppSetting(key: string): Promise<string | null> {
   return data.value;
 }
 
-function mapRecipe(recipe: RemoteRecipe): Recipe {
-  const ingredients = ((recipe as any).ingredients ?? [])
-    .sort((a: any, b: any) => a.display_order - b.display_order)
-    .map((item: any) => ({
+type JoinedRecipe = RemoteRecipe & {
+  ingredients?: RemoteIngredient[];
+  recipe_steps?: RemoteRecipeStep[];
+  recipe_images?: RemoteRecipeImage[];
+  recipe_tags?: RemoteRecipeTag[];
+};
+
+function mapRecipe(recipe: JoinedRecipe): Recipe {
+  const ingredients = (recipe.ingredients ?? [])
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((item) => ({
       id: item.id,
       name: item.name,
       quantity: item.quantity ?? 0,
       unit: item.unit ?? '',
     }));
 
-  const steps = ((recipe as any).recipe_steps ?? [])
-    .sort((a: any, b: any) => a.display_order - b.display_order)
-    .map((item: any) => ({
+  const steps = (recipe.recipe_steps ?? [])
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((item) => ({
       id: item.id,
       instruction: item.instruction,
       duration: item.duration ?? undefined,
       optionalTimer: item.optional_timer,
     }));
 
-  const images = ((recipe as any).recipe_images ?? [])
-    .sort((a: any, b: any) => a.display_order - b.display_order)
-    .map((item: any) => item.storage_path);
+  const images = (recipe.recipe_images ?? [])
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((item) => item.storage_path);
+
+  const tags = (recipe.recipe_tags ?? []).map((item) => item.tag);
 
   return {
     id: recipe.id,
@@ -169,8 +179,10 @@ function mapRecipe(recipe: RemoteRecipe): Recipe {
     servings: recipe.servings ?? 1,
     ingredients,
     steps,
-    tags: [],
+    tags,
     featured: recipe.featured,
-    popular: false,
+    popular: recipe.popular,
+    tips: recipe.tips ?? undefined,
+    notes: recipe.notes ?? undefined,
   };
 }

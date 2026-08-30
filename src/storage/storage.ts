@@ -8,6 +8,16 @@ const SHOPPING_KEY = 'arike-shopping-list';
 const RECENT_KEY = 'arike-recently-viewed';
 const RECIPE_CACHE_KEY = 'olatiwa-recipe-cache';
 const RECIPE_CACHE_TS_KEY = 'olatiwa-recipe-cache-ts';
+const RECIPE_CACHE_VERSION_KEY = 'olatiwa-recipe-cache-version';
+const CATEGORY_CACHE_KEY = 'olatiwa-category-cache';
+const CATEGORY_CACHE_TS_KEY = 'olatiwa-category-cache-ts';
+
+// Bump this whenever the Recipe/Category shape or dataset format changes, so
+// stale cached payloads from older app versions are discarded gracefully.
+const CACHE_VERSION = '1';
+// Cache is considered fresh for this long before remote data takes priority
+// again (ms). 24 hours.
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 // ============================================================================
 // Local Storage Functions (AsyncStorage)
@@ -71,10 +81,27 @@ export const saveRecentlyViewed = async (recentlyViewed: string[]) => {
 // Recipe Cache Helpers
 // ============================================================================
 
+async function isCacheVersionCurrent(): Promise<boolean> {
+  try {
+    const version = await AsyncStorage.getItem(RECIPE_CACHE_VERSION_KEY);
+    return version === CACHE_VERSION;
+  } catch {
+    return false;
+  }
+}
+
 async function getCachedRecipes(): Promise<Recipe[] | null> {
   try {
-    const cached = await AsyncStorage.getItem(RECIPE_CACHE_KEY);
+    const [cached, ts] = await Promise.all([
+      AsyncStorage.getItem(RECIPE_CACHE_KEY),
+      AsyncStorage.getItem(RECIPE_CACHE_TS_KEY),
+    ]);
     if (!cached) return null;
+    // Version guard: discard data from a different (older) app build.
+    if (!(await isCacheVersionCurrent())) return null;
+    // TTL guard: only treat fresh cache as usable; stale data falls back to
+    // local bundled recipes rather than permanently authoritative old data.
+    if (ts && Date.now() - Number(ts) > CACHE_TTL_MS) return null;
     return JSON.parse(cached) as Recipe[];
   } catch {
     return null;
@@ -83,8 +110,38 @@ async function getCachedRecipes(): Promise<Recipe[] | null> {
 
 async function setCachedRecipes(recipes: Recipe[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(RECIPE_CACHE_KEY, JSON.stringify(recipes));
-    await AsyncStorage.setItem(RECIPE_CACHE_TS_KEY, String(Date.now()));
+    await Promise.all([
+      AsyncStorage.setItem(RECIPE_CACHE_KEY, JSON.stringify(recipes)),
+      AsyncStorage.setItem(RECIPE_CACHE_TS_KEY, String(Date.now())),
+      AsyncStorage.setItem(RECIPE_CACHE_VERSION_KEY, CACHE_VERSION),
+    ]);
+  } catch {
+    // ignore cache write failures
+  }
+}
+
+async function getCachedCategories(): Promise<string[] | null> {
+  try {
+    const [cached, ts] = await Promise.all([
+      AsyncStorage.getItem(CATEGORY_CACHE_KEY),
+      AsyncStorage.getItem(CATEGORY_CACHE_TS_KEY),
+    ]);
+    if (!cached) return null;
+    if (!(await isCacheVersionCurrent())) return null;
+    if (ts && Date.now() - Number(ts) > CACHE_TTL_MS) return null;
+    return JSON.parse(cached) as string[];
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedCategories(categories: string[]): Promise<void> {
+  try {
+    await Promise.all([
+      AsyncStorage.setItem(CATEGORY_CACHE_KEY, JSON.stringify(categories)),
+      AsyncStorage.setItem(CATEGORY_CACHE_TS_KEY, String(Date.now())),
+      AsyncStorage.setItem(RECIPE_CACHE_VERSION_KEY, CACHE_VERSION),
+    ]);
   } catch {
     // ignore cache write failures
   }
@@ -169,8 +226,14 @@ export async function loadRecipeById(recipeId: string): Promise<Recipe | null> {
 export async function loadCategories(): Promise<string[]> {
   try {
     const remote = await fetchRemoteCategories();
-    return remote.map((c) => c.name);
+    const names = remote.map((c) => c.name);
+    if (names.length > 0) {
+      await setCachedCategories(names);
+    }
+    return names.length > 0 ? names : localCategories;
   } catch {
+    const cached = await getCachedCategories();
+    if (cached && cached.length > 0) return cached;
     return localCategories;
   }
 }

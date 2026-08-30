@@ -16,6 +16,7 @@ create table if not exists public.categories (
 -- Recipes
 create table if not exists public.recipes (
   id uuid primary key default gen_random_uuid(),
+  slug text unique,
   title text not null,
   description text,
   category_id uuid references public.categories(id),
@@ -26,6 +27,7 @@ create table if not exists public.recipes (
   total_time integer,
   servings integer,
   featured boolean not null default false,
+  popular boolean not null default false,
   status text not null default 'draft' check (status in ('draft','published','archived')),
   tips text,
   notes text,
@@ -66,6 +68,13 @@ create table if not exists public.recipe_images (
   created_at timestamptz not null default now()
 );
 
+-- Recipe tags
+create table if not exists public.recipe_tags (
+  id uuid primary key default gen_random_uuid(),
+  recipe_id uuid not null references public.recipes(id) on delete cascade,
+  tag text not null
+);
+
 -- App settings
 create table if not exists public.app_settings (
   id uuid primary key default gen_random_uuid(),
@@ -79,9 +88,12 @@ create table if not exists public.app_settings (
 create index if not exists idx_recipes_category on public.recipes(category_id);
 create index if not exists idx_recipes_status on public.recipes(status);
 create index if not exists idx_recipes_featured on public.recipes(featured) where featured = true;
+create index if not exists idx_recipes_popular on public.recipes(popular) where popular = true;
 create index if not exists idx_ingredients_recipe on public.ingredients(recipe_id);
 create index if not exists idx_recipe_steps_recipe on public.recipe_steps(recipe_id);
 create index if not exists idx_recipe_images_recipe on public.recipe_images(recipe_id);
+create index if not exists idx_recipe_tags_recipe on public.recipe_tags(recipe_id);
+create index if not exists idx_recipe_tags_tag on public.recipe_tags(tag);
 
 -- Triggers for updated_at
 create or replace function public.set_updated_at()

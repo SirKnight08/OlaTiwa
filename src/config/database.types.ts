@@ -9,6 +9,7 @@ export type DatabaseCategory = {
 
 export type DatabaseRecipe = {
   id: string;
+  slug: string;
   title: string;
   description: string | null;
   category_id: string | null;
@@ -19,6 +20,7 @@ export type DatabaseRecipe = {
   total_time: number | null;
   servings: number | null;
   featured: boolean;
+  popular: boolean;
   status: 'draft' | 'published' | 'archived';
   tips: string | null;
   notes: string | null;
@@ -54,6 +56,12 @@ export type DatabaseRecipeImage = {
   is_primary: boolean;
   display_order: number;
   created_at: string;
+};
+
+export type DatabaseRecipeTag = {
+  id: string;
+  recipe_id: string;
+  tag: string;
 };
 
 export type DatabaseAppSetting = {

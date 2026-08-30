@@ -29,7 +29,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "seed": "npm run seed:categories && npm run seed:recipes",
+    "seed:categories": "tsx supabase/seed-categories.ts",
+    "seed:recipes": "tsx supabase/seed-recipes.ts"
   },
   "private": true
 }

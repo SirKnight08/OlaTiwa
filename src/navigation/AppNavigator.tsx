@@ -8,7 +8,7 @@ import ShoppingListScreen from '../screens/ShoppingListScreen';
 import SearchScreen from '../screens/SearchScreen';
 import RecipeDetailScreen from '../screens/RecipeDetailScreen';
 import CookingModeScreen from '../screens/CookingModeScreen';
-import { theme } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -28,6 +28,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabsParamList>();
 
 function MainTabs() {
+  const { theme } = useTheme();
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -36,15 +37,15 @@ function MainTabs() {
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#f1f5f9',
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
           height: 68,
           paddingBottom: 8,
         },
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Categories" component={CategoriesScreen} initialParams={{ category: 'Nigerian' }} />
+      <Tab.Screen name="Categories" component={CategoriesScreen} />
       <Tab.Screen name="Search" component={SearchScreen} />
       <Tab.Screen name="Favorites" component={FavoritesScreen} />
       <Tab.Screen name="Shopping" component={ShoppingListScreen} />

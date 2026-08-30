@@ -22,7 +22,9 @@ export const RecipeSchema = z.object({
   description: z.string().min(1),
   category: z.string().min(1),
   cuisine: z.string().min(1),
-  image: z.string().url(),
+  // A recipe may have a remote URL, or be empty when no image is available.
+  image: z.union([z.string().url(), z.literal('')]),
+  images: z.array(z.string()).optional(),
   preparationTime: z.number().nonnegative(),
   cookingTime: z.number().nonnegative(),
   totalTime: z.number().nonnegative(),
@@ -33,6 +35,8 @@ export const RecipeSchema = z.object({
   tags: z.array(z.string()),
   featured: z.boolean(),
   popular: z.boolean(),
+  tips: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export const CreateRecipeSchema = RecipeSchema.omit({ id: true });

@@ -54,17 +54,15 @@ supabase db push
 
 ### 4. Seed Initial Data
 
-Run the seed script to insert the 27 initial recipes:
+Run the seed scripts to insert the 10 categories and **201 recipes**:
 
 ```bash
-npm run seed
+npm run seed              # categories + recipes
+npm run seed:categories
+npm run seed:recipes
 ```
 
-Or manually:
-
-```bash
-npx ts-node supabase/seed-recipes.ts
-```
+The recipe seeder imports the bundled dataset from `src/recipes.ts`, upserts by slug (id), and refreshes each recipe's ingredients, steps, images and tags on every run, so it is safe to re-run.
 
 ### 5. Enable Row Level Security (Optional)
 
@@ -91,18 +89,19 @@ npm start
 
 - **recipes** - Main recipe data
   - id (PK): Recipe identifier
+  - slug (UNIQUE): Stable identifier for repeatable seeding
   - title: Recipe name
   - description: Short description
-  - category: Recipe category
+  - category_id (FK): Links to categories
   - cuisine: Cuisine type
-  - image: Image URL
+  - difficulty: Easy | Medium | Hard
   - preparation_time: Prep time in minutes
   - cooking_time: Cook time in minutes
   - total_time: Total time in minutes
-  - difficulty: Easy | Medium | Hard
   - servings: Number of servings
   - featured: Boolean flag for featured recipes
   - popular: Boolean flag for popular recipes
+  - status: draft | published | archived
   - created_at: Timestamp
   - updated_at: Timestamp
 
@@ -123,10 +122,18 @@ npm start
   - optional_timer: Boolean for timer
   - created_at
 
-- **recipe_tags** - Recipe tags
+- **recipe_images** - Recipe images (URLs / storage paths)
   - id (PK)
   - recipe_id (FK): Links to recipes
-  - tag: Tag name
+  - storage_path: Image URL / storage path
+  - is_primary: Marks the primary image
+  - display_order
+  - created_at
+
+- **recipe_tags** - Recipe tags (for search)
+  - id (PK)
+  - recipe_id (FK): Links to recipes
+  - tag: Tag text
   - created_at
 
 ### Indexes
@@ -170,11 +177,11 @@ See `src/services/recipeService.ts` for available functions:
 
 ## Data Migration
 
-The 27 original recipes from `src/data/recipes.ts` are included in `supabase/seed.ts`.
+The 201 recipes from `src/recipes.ts` are seeded via `supabase/seed-recipes.ts` (categories come from `supabase/seed.ts` / `seed-categories.ts`).
 
 To migrate:
 1. Ensure all tables are created
-2. Run the seed script (step 4 above)
+2. Run the seed scripts (step 4 above)
 3. Update screens to use `AppContext.recipes` instead of importing from `src/data/recipes.ts`
 
 ## Validation

@@ -1,11 +1,11 @@
-# Arike Recipe - Quick Start Guide
+# OlaTiwa-Recipe - Quick Start Guide
 
 ## ✅ App Status: READY FOR ANDROID TESTING
 
 Your Arike Recipe app is **fully functional** and ready to install on an Android device for testing!
 
 ### What's Included
-- ✅ 27 recipes (Nigerian, African, Foreign cuisines)
+- ✅ 201 recipes across 10 cuisines (East Asian, South Asian, Middle Eastern, African, European, Latin American, North American, Caribbean, Oceanic, Sweet & Snack)
 - ✅ 5 main navigation tabs (Home, Categories, Search, Favorites, Shopping List)
 - ✅ Recipe details with ingredient scaling
 - ✅ Cooking mode with timer and text-to-speech
@@ -58,7 +58,7 @@ arike-recipe/
 │   ├── AppContext.tsx              # Global state management (recipes, favorites, shopping list)
 │   ├── types.ts                    # TypeScript type definitions
 │   ├── theme.ts                    # Design system (colors, spacing, typography)
-│   ├── data/recipes.ts             # 27 recipes (built-in, no backend needed)
+│   ├── data/recipes.ts             # (legacy local data — superseded by src/recipes.ts)
 │   ├── storage/storage.ts          # Data access layer (AsyncStorage + local recipes)
 │   ├── navigation/
 │   │   └── AppNavigator.tsx        # Navigation structure (5 tabs + 2 modals)
@@ -79,28 +79,27 @@ arike-recipe/
 
 ### Data Flow
 1. **App loads** → AppProvider initializes
-2. **loadRecipes()** → Fetches 27 recipes from `src/data/recipes.ts` (no Supabase needed)
+2. **loadRecipes()** → Remote-first: fetches from Supabase, falls back to AsyncStorage cache, then the bundled 201 recipes in `src/recipes.ts`
 3. **loadCategories()** → Gets categories from same data
 4. **AsyncStorage** → Loads user preferences (favorites, shopping list, recently viewed)
 5. **Screens render** → All components use AppContext for data
 
-### Optional: Supabase Integration (Future Upgrade)
+### Supabase Backend (already integrated)
 
-The app is designed to support Supabase for cloud-based recipe management. To enable it later:
+The app is **remote-first**: it tries Supabase, falls back to a local AsyncStorage cache, then the bundled 201 recipes — so it works offline.
 
-1. Create account at https://supabase.com
-2. Create new project
-3. Create `.env.local` with your credentials:
+To seed/configure the backend:
+
+1. Create a project at https://supabase.com
+2. Put your URL + **anon** key in `.env` (see `.env.example`):
    ```
    EXPO_PUBLIC_SUPABASE_URL=your_url
-   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_key
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
    ```
-4. Add Supabase config back:
-   ```bash
-   npm install @supabase/supabase-js
-   ```
+3. Run the migration SQL (`supabase/migrations/001_create_recipe_schema.sql`) in the Supabase SQL Editor
+4. Seed the data: `npm run seed` (categories + 201 recipes)
 
-For now, the app uses local built-in recipes and works perfectly without Supabase.
+Until the migration is applied (it isn't yet), the app keeps working from the bundled recipes.
 
 ### Troubleshooting
 
@@ -141,7 +140,7 @@ eas build --platform android
 
 ### Support
 
-All 27 recipes have:
+All 201 recipes have:
 - Full ingredients with quantities
 - Step-by-step cooking instructions
 - Preparation and cooking times

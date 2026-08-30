@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import * as Speech from 'expo-speech';
 import { recipes } from '../data/recipes';
-import { theme } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
 
 export default function CookingModeScreen() {
   const route = useRoute<any>();
@@ -12,6 +12,7 @@ export default function CookingModeScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [timer, setTimer] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const { theme } = useTheme();
 
   const currentInstruction = recipe.steps[currentStep];
   const progress = ((currentStep + 1) / recipe.steps.length) * 100;
@@ -56,37 +57,37 @@ export default function CookingModeScreen() {
   const restartTimer = () => setTimer(currentInstruction?.duration ?? 0);
 
   return (
-    <View style={styles.screen}>
-      <Text style={styles.heading}>Cooking Mode</Text>
-      <Text style={styles.recipeTitle}>{recipe.title}</Text>
-      <Text style={styles.stepMeta}>STEP {currentStep + 1} OF {recipe.steps.length}</Text>
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <Text style={[styles.heading, { color: theme.colors.text }]}>Cooking Mode</Text>
+      <Text style={[styles.recipeTitle, { color: theme.colors.textMuted }]}>{recipe.title}</Text>
+      <Text style={[styles.stepMeta, { color: theme.colors.primary }]}>STEP {currentStep + 1} OF {recipe.steps.length}</Text>
 
       <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.colors.primary }]} />
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.stepText}>{currentInstruction.instruction}</Text>
+      <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Text style={[styles.stepText, { color: theme.colors.text }]}>{currentInstruction.instruction}</Text>
       </View>
 
-      <View style={styles.timerBox}>
-        <Text style={styles.timerLabel}>Timer</Text>
-        <Text style={styles.timer}>{timerLabel}</Text>
+      <View style={[styles.timerBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Text style={[styles.timerLabel, { color: theme.colors.textMuted }]}>Timer</Text>
+        <Text style={[styles.timer, { color: theme.colors.text }]}>{timerLabel}</Text>
         <View style={styles.timerActions}>
-          <Pressable style={styles.timerButton} onPress={() => setIsRunning((v) => !v)}>
+          <Pressable style={[styles.timerButton, { backgroundColor: theme.colors.primary }]} onPress={() => setIsRunning((v) => !v)}>
             <Text style={styles.timerButtonText}>{isRunning ? 'Pause' : 'Start'}</Text>
           </Pressable>
-          <Pressable style={styles.timerButtonSecondary} onPress={restartTimer}>
-            <Text style={styles.timerButtonSecondaryText}>Reset</Text>
+          <Pressable style={[styles.timerButtonSecondary, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={restartTimer}>
+            <Text style={[styles.timerButtonSecondaryText, { color: theme.colors.text }]}>Reset</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={styles.controls}>
-        <Pressable style={styles.navButton} onPress={previousStep}>
-          <Text style={styles.navText}>Previous</Text>
+        <Pressable style={[styles.navButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={previousStep}>
+          <Text style={[styles.navText, { color: theme.colors.text }]}>Previous</Text>
         </Pressable>
-        <Pressable style={styles.navButtonPrimary} onPress={nextStep}>
+        <Pressable style={[styles.navButtonPrimary, { backgroundColor: theme.colors.primary }]} onPress={nextStep}>
           <Text style={styles.navTextPrimary}>Next</Text>
         </Pressable>
       </View>
@@ -97,24 +98,20 @@ export default function CookingModeScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-    padding: theme.spacing.md,
+    padding: 16,
     justifyContent: 'center',
   },
   heading: {
     fontSize: 28,
     fontWeight: '800',
-    color: theme.colors.text,
   },
   recipeTitle: {
     fontSize: 20,
-    color: theme.colors.textMuted,
     marginTop: 8,
   },
   stepMeta: {
     marginTop: 14,
     fontSize: 13,
-    color: theme.colors.primary,
     fontWeight: '700',
     letterSpacing: 1.5,
   },
@@ -127,40 +124,32 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: theme.colors.primary,
     borderRadius: 999,
   },
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
+    borderRadius: 24,
     padding: 18,
     marginTop: 20,
     borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   stepText: {
     fontSize: 24,
     fontWeight: '700',
     lineHeight: 32,
-    color: theme.colors.text,
   },
   timerBox: {
     marginTop: 20,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: theme.colors.border,
     padding: 16,
   },
   timerLabel: {
-    color: theme.colors.textMuted,
     fontSize: 12,
     textTransform: 'uppercase',
   },
   timer: {
     fontSize: 38,
     fontWeight: '800',
-    color: theme.colors.text,
     marginTop: 8,
   },
   timerActions: {
@@ -170,9 +159,8 @@ const styles = StyleSheet.create({
   },
   timerButton: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
     paddingVertical: 12,
-    borderRadius: theme.radius.md,
+    borderRadius: 18,
     alignItems: 'center',
   },
   timerButtonText: {
@@ -181,15 +169,12 @@ const styles = StyleSheet.create({
   },
   timerButtonSecondary: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
     paddingVertical: 12,
-    borderRadius: theme.radius.md,
+    borderRadius: 18,
     alignItems: 'center',
   },
   timerButtonSecondaryText: {
-    color: theme.colors.text,
     fontWeight: '700',
   },
   controls: {
@@ -199,23 +184,19 @@ const styles = StyleSheet.create({
   },
   navButton: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
     paddingVertical: 14,
-    borderRadius: theme.radius.md,
+    borderRadius: 18,
     alignItems: 'center',
   },
   navText: {
-    color: theme.colors.text,
     fontWeight: '700',
     fontSize: 16,
   },
   navButtonPrimary: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
-    borderRadius: theme.radius.md,
+    borderRadius: 18,
     alignItems: 'center',
   },
   navTextPrimary: {
