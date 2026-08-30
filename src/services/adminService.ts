@@ -16,13 +16,16 @@ export type AdminSession = {
  * user's app_metadata.role === 'admin' before granting dashboard access.
  * Passwords are never hardcoded in the app — they live only in Supabase Auth.
  */
+function getAdminRole(user: { app_metadata?: Record<string, any>; user_metadata?: Record<string, any> }): string | undefined {
+  return user.app_metadata?.role ?? user.user_metadata?.role;
+}
+
 export async function adminSignIn(email: string, password: string): Promise<AdminSession> {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
   if (!data.user) throw new Error('Sign-in succeeded but no user was returned.');
 
-  const role = data.user.app_metadata?.role;
-  const isAdmin = role === 'admin';
+  const isAdmin = getAdminRole(data.user) === 'admin';
   return { email: data.user.email ?? email, isAdmin };
 }
 
@@ -33,7 +36,7 @@ export async function adminSignOut(): Promise<void> {
 export async function getCurrentAdmin(): Promise<AdminSession | null> {
   const { data } = await supabase.auth.getUser();
   if (!data.user) return null;
-  const isAdmin = data.user.app_metadata?.role === 'admin';
+  const isAdmin = getAdminRole(data.user) === 'admin';
   return { email: data.user.email ?? '', isAdmin };
 }
 
