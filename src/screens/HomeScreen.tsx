@@ -3,7 +3,9 @@ import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 import { useNavigation } from '@react-navigation/native';
 import { categories, getFeaturedRecipes, getPopularRecipes, recipes, searchRecipes } from '../data/recipes';
 import { useAppContext } from '../AppContext';
-import { theme } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useMenu } from '../theme/MenuContext';
+import Icon from '../components/Icon';
 import type { Recipe } from '../types';
 
 const featured = getFeaturedRecipes();
@@ -12,10 +14,11 @@ const popular = getPopularRecipes();
 const RecipeCard = ({ recipe }: { recipe: Recipe }) => {
   const navigation = useNavigation<any>();
   const { favorites, toggleFavorite } = useAppContext();
+  const { theme } = useTheme();
 
   return (
     <Pressable
-      style={styles.recipeCard}
+      style={[styles.recipeCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, shadowColor: theme.colors.shadow }]}
       onPress={() => navigation.navigate('RecipeDetail', { recipeId: recipe.id })}
     >
       <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
@@ -24,13 +27,15 @@ const RecipeCard = ({ recipe }: { recipe: Recipe }) => {
         style={styles.favoriteButton}
         onPress={() => toggleFavorite(recipe.id)}
       >
-        <Text style={styles.favoriteText}>{favorites.includes(recipe.id) ? '♥' : '♡'}</Text>
+        <Text style={[styles.favoriteText, { color: theme.colors.primary }]}>
+          {favorites.includes(recipe.id) ? '♥' : '♡'}
+        </Text>
       </Pressable>
       <View style={styles.cardMeta}>
-        <Text style={styles.cardCategory}>{recipe.category}</Text>
-        <Text style={styles.cardTime}>{recipe.totalTime} min</Text>
+        <Text style={[styles.cardCategory, { color: theme.colors.primary }]}>{recipe.category}</Text>
+        <Text style={[styles.cardTime, { color: theme.colors.textMuted }]}>{recipe.totalTime} min</Text>
       </View>
-      <Text style={styles.cardTitle}>{recipe.title}</Text>
+      <Text style={[styles.cardTitle, { color: theme.colors.text }]}>{recipe.title}</Text>
     </Pressable>
   );
 };
@@ -38,31 +43,38 @@ const RecipeCard = ({ recipe }: { recipe: Recipe }) => {
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const [search, setSearch] = useState('');
+  const { theme } = useTheme();
+  const { toggleMenu } = useMenu();
 
   const results = useMemo(() => (search ? searchRecipes(search) : recipes).slice(0, 6), [search]);
 
   return (
-    <ScrollView style={styles.screen} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerWrap}>
-        <Text style={styles.eyebrow}>Arike Recipe</Text>
-        <Text style={styles.headerTitle}>Discover something delicious.</Text>
+    <ScrollView style={[styles.screen, { backgroundColor: theme.colors.background }]} showsVerticalScrollIndicator={false}>
+      <View style={styles.headerRow}>
+        <Pressable onPress={toggleMenu} style={styles.menuButton}>
+          <Icon name="menu" size={28} color={theme.colors.text} />
+        </Pressable>
+        <View style={styles.headerTextWrap}>
+          <Text style={[styles.eyebrow, { color: theme.colors.primary }]}>OlaTiwa-Recipe</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Discover something delicious.</Text>
+        </View>
       </View>
 
-      <View style={styles.searchBox}>
-        <Text style={styles.searchIcon}>⌕</Text>
+      <View style={[styles.searchBox, { backgroundColor: theme.colors.surface, shadowColor: theme.colors.shadow }]}>
+        <Text style={[styles.searchIcon, { color: theme.colors.textMuted }]}>⌕</Text>
         <TextInput
           value={search}
           onChangeText={setSearch}
           placeholder="Search recipes..."
           placeholderTextColor={theme.colors.textMuted}
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.colors.text }]}
           accessibilityLabel="Search recipes"
         />
       </View>
 
       {search ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Results</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Results</Text>
           {results.length > 0 ? (
             <FlatList
               data={results}
@@ -71,18 +83,18 @@ export default function HomeScreen() {
               renderItem={({ item }) => <RecipeCard recipe={item} />}
             />
           ) : (
-            <Text style={styles.emptyText}>No recipes match your search.</Text>
+            <Text style={[styles.emptyText, { color: theme.colors.textMuted }]}>No recipes match your search.</Text>
           )}
         </View>
       ) : (
         <>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Featured</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Featured</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
               {featured.map((recipe) => (
                 <Pressable
                   key={recipe.id}
-                  style={styles.featuredCard}
+                  style={[styles.featuredCard, { backgroundColor: theme.colors.surface }]}
                   onPress={() => navigation.navigate('RecipeDetail', { recipeId: recipe.id })}
                 >
                   <Image source={{ uri: recipe.image }} style={styles.featuredImage} />
@@ -94,22 +106,22 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Categories</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Categories</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
               {categories.map((category) => (
                 <Pressable
                   key={category}
-                  style={styles.categoryPill}
+                  style={[styles.categoryPill, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
                   onPress={() => navigation.navigate('Categories', { category })}
                 >
-                  <Text style={styles.categoryText}>{category}</Text>
+                  <Text style={[styles.categoryText, { color: theme.colors.text }]}>{category}</Text>
                 </Pressable>
               ))}
             </ScrollView>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Popular</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Popular</Text>
             <View style={styles.recipeGrid}>
               {popular.map((recipe) => (
                 <RecipeCard key={recipe.id} recipe={recipe} />
@@ -125,49 +137,52 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: 16,
   },
-  headerWrap: {
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingTop: 32,
     paddingBottom: 12,
+    gap: 12,
+  },
+  menuButton: {
+    padding: 4,
+  },
+  headerTextWrap: {
+    flex: 1,
   },
   eyebrow: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 2,
-    color: theme.colors.primary,
     textTransform: 'uppercase',
   },
   headerTitle: {
-    fontSize: 34,
-    lineHeight: 40,
-    color: theme.colors.text,
+    fontSize: 28,
+    lineHeight: 36,
     fontWeight: '800',
-    marginTop: 8,
+    marginTop: 4,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
+    borderRadius: 18,
     paddingHorizontal: 12,
     marginBottom: 12,
-    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 2,
   },
   searchIcon: {
     fontSize: 20,
-    color: theme.colors.textMuted,
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
     height: 48,
     fontSize: 16,
-    color: theme.colors.text,
   },
   section: {
     marginTop: 16,
@@ -176,7 +191,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.text,
     marginBottom: 12,
   },
   horizontalList: {
@@ -186,9 +200,8 @@ const styles = StyleSheet.create({
     width: 260,
     height: 180,
     marginRight: 12,
-    borderRadius: theme.radius.lg,
+    borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: theme.colors.surface,
   },
   featuredImage: {
     width: '100%',
@@ -208,29 +221,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   categoryPill: {
-    backgroundColor: theme.colors.surface,
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginRight: 10,
     borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   categoryText: {
-    color: theme.colors.text,
     fontWeight: '600',
   },
   recipeGrid: {
     gap: 12,
   },
   recipeCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
+    borderRadius: 24,
     overflow: 'hidden',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
@@ -246,18 +254,15 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   cardCategory: {
-    color: theme.colors.primary,
     fontWeight: '700',
     fontSize: 12,
   },
   cardTime: {
-    color: theme.colors.textMuted,
     fontSize: 12,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.text,
     paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 16,
@@ -276,11 +281,9 @@ const styles = StyleSheet.create({
   },
   favoriteText: {
     fontSize: 20,
-    color: theme.colors.primary,
     lineHeight: 20,
   },
   emptyText: {
-    color: theme.colors.textMuted,
     fontSize: 15,
   },
 });

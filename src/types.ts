@@ -32,6 +32,8 @@ export type Recipe = {
   tags: string[];
   featured: boolean;
   popular: boolean;
+  tips?: string;
+  notes?: string;
 };
 
 export type ShoppingItem = {
