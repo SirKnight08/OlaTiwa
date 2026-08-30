@@ -24,6 +24,7 @@ set search_path = public
 as $$
   select coalesce(
     (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin',
+    (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin',
     false
   );
 $$;

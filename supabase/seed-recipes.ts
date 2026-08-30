@@ -26,6 +26,28 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+async function createSupabaseClient(): Promise<SupabaseClient> {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY in .env');
+  }
+
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabase = createClient(url, anonKey);
+
+  const adminEmail = process.env.SUPABASE_ADMIN_EMAIL;
+  const adminPassword = process.env.SUPABASE_ADMIN_PASSWORD;
+  if (adminEmail && adminPassword) {
+    const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPassword });
+    if (error) {
+      throw new Error(`Admin authentication failed: ${error.message}`);
+    }
+  }
+
+  return supabase;
+}
+
 async function ensureCategories(supabase: SupabaseClient): Promise<Map<string, string>> {
   const { error } = await supabase.from('categories').upsert(
     seedCategories.map((category) => ({
@@ -59,7 +81,7 @@ async function replaceRecipeChildren(supabase: SupabaseClient, recipeId: string)
 }
 
 async function seed() {
-  const { supabase } = await import('../src/config/supabase.ts');
+  const supabase = await createSupabaseClient();
   const categoryIdBySlug = await ensureCategories(supabase);
 
   let processed = 0;
